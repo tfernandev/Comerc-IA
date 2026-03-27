@@ -1,67 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #3B82F6;
-  --color-secondary: #10B981;
-  --color-accent: #6366F1;
-  --color-background: #0F172A;
-  --color-surface: #1E293B;
-
-  --font-sans: "Inter", system-ui, sans-serif;
+  --color-primary: #2196f3;
+  --color-secondary: #00bcd4;
+  --color-accent: #ff9800;
+  --color-bg-main: #f5f7fa;
+  --color-card: #ffffff;
 }
 
-/* Global base */
-html, body {
-  background-color: #0F172A;
-  color: #fff;
-  min-height: 100vh;
+:root {
+  --primary: #2196f3;
+  --secondary: #00bcd4;
+  --bg-main: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-main: #2c3e50;
+  --text-muted: #7f8c8d;
 }
 
-/* Utility: glass card */
-.glass {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  overflow-x: hidden;
 }
 
-/* Utility: card gradient */
-.card-gradient {
-  background: linear-gradient(135deg, #0f1f3a 0%, #0a0f1e 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 2rem;
-  border-radius: 1.5rem;
+/* Estilo Retro 2015: Sombras con profundidad y bordes redondeados controlados */
+.retro-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e1e8ed;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-/* Utility: input field */
-.input-field {
-  width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  color: #fff;
-  font-size: 1.25rem;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.input-field:focus {
-  border-color: rgba(59,130,246,0.6);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
-}
-.input-field::placeholder {
-  color: rgba(255,255,255,0.3);
+.retro-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Utility: btn-primary */
-.btn-primary {
-  padding: 1rem 2rem;
-  background: linear-gradient(90deg, #2563eb, #4f46e5);
-  border-radius: 9999px;
+.btn-retro {
+  background-color: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px; /* Menos redondeado que el estilo actual */
   font-weight: 700;
-  font-size: 1.05rem;
-  cursor: pointer;
-  transition: all 0.25s;
   box-shadow: 0 8px 24px rgba(59,130,246,0.3);
   color: #fff;
   border: none;
