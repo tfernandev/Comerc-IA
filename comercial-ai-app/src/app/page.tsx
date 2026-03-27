@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Rocket, Brain, Target, ArrowRight, AlertCircle,
   BarChart3, ChevronRight, ChevronLeft, LayoutDashboard, Zap,
-  Share2, Check,
+  Share2, Check, FileDown, Activity,
 } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type Section = "landing" | "form" | "analyzing" | "results";
 
@@ -41,9 +43,43 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">("idle");
+  const [isDownloading, setIsDownloading] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const progress = ((currentStep + 1) / QUESTIONS.length) * 100;
   const q = QUESTIONS[currentStep];
+
+  const calculateScore = () => {
+    let score = 0;
+    
+    // 1. Avance facturación (Q1 y Q2)
+    const target = parseFloat(answers[1]?.replace(/[^0-9.]/g, '') || "0");
+    const actual = parseFloat(answers[2]?.replace(/[^0-9.]/g, '') || "0");
+    if (target > 0) {
+      const ratio = (actual / target) * 20;
+      score += Math.min(ratio, 20);
+    }
+
+    // 2. Conversión (Q6)
+    const conv = parseFloat(answers[6] || "0");
+    score += Math.min(conv * 2, 20);
+
+    // 3. Seguimiento (Q9)
+    if (answers[9] === "Sí, sistemático") score += 20;
+    else if (answers[9] === "Parcial") score += 10;
+
+    // 4. Contacto base (Q11)
+    if (answers[11] === "Semanalmente") score += 20;
+    else if (answers[11] === "Mensualmente") score += 10;
+
+    // 5. Posicionamiento (Q13)
+    const pos = parseFloat(answers[13] || "0");
+    score += Math.min(pos * 2, 20);
+
+    return Math.round(score);
+  };
+
+  const finalScore = calculateScore();
 
   const handleNext = () => {
     if (currentStep < QUESTIONS.length - 1) setCurrentStep((c) => c + 1);
@@ -77,6 +113,51 @@ export default function Home() {
       setShareStatus("copied");
     }
     setTimeout(() => setShareStatus("idle"), 3000);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+    setIsDownloading(true);
+    
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#0F172A",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Diagnostico_Comercial_${new Date().toLocaleDateString()}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const RadialProgress = ({ score }: { score: number }) => {
+    const color = score > 70 ? "#10B981" : score > 40 ? "#F59E0B" : "#EF4444";
+    return (
+      <div style={{ position: "relative", width: 120, height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="120" height="120">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#1e293b" strokeWidth="10" />
+          <motion.circle cx="60" cy="60" r="54" fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" strokeDasharray="339.29"
+            initial={{ strokeDashoffset: 339.29 }}
+            animate={{ strokeDashoffset: 339.29 - (339.29 * score) / 100 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+          />
+        </svg>
+        <div style={{ position: "absolute", textAlign: "center" }}>
+          <span style={{ fontSize: "1.75rem", fontWeight: 900, color }}>{score}</span>
+          <span style={{ fontSize: "0.6rem", display: "block", color: "#475569", fontWeight: 800, marginTop: -4 }}>SCORE</span>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -203,123 +284,136 @@ export default function Home() {
           <motion.div key="results" initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             style={{ width: "100%", maxWidth: 1100, zIndex: 10, paddingBottom: "3rem" }}>
 
-            <div style={{ textAlign: "center", marginBottom: 40 }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#60a5fa" }}>✦ Análisis Finalizado</span>
-              <h1 style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 900, marginTop: 12 }}>Tu Diagnóstico de Salud Comercial</h1>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20 }}>
+               <button onClick={handleShare} className="glass" style={{ padding: "10px 18px", borderRadius: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "#94a3b8", cursor: "pointer", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+                  {shareStatus === "idle" ? <Share2 size={16} /> : <Check size={16} color="#10b981" />}
+                  {shareStatus === "idle" ? "Compartir" : "Copiado"}
+               </button>
+               <button onClick={handleDownloadPDF} disabled={isDownloading} className="glass" style={{ padding: "10px 18px", borderRadius: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "#94a3b8", cursor: "pointer", opacity: isDownloading ? 0.5 : 1, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+                  <FileDown size={16} />
+                  {isDownloading ? "Generando..." : "Descargar PDF"}
+               </button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
+            <div ref={reportRef} style={{ padding: "3rem", borderRadius: "2.5rem", background: "#0F172A", border: "1px solid rgba(255,255,255,0.05)", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)" }}>
+              <div style={{ textAlign: "center", marginBottom: 50 }}>
+                <div style={{ display: "inline-block", padding: "6px 16px", background: "rgba(96,165,250,0.1)", borderRadius: 99, marginBottom: 16 }}>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", color: "#60a5fa" }}>✦ Análisis Estratégico Finalizado</span>
+                </div>
+                <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 900, marginTop: 4, letterSpacing: "-0.03em", lineHeight: 1 }}>Tu Diagnóstico de Salud Comercial</h1>
+              </div>
 
-              {/* Card: Diagnóstico */}
-              <div className="card-gradient" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                    <div style={{ padding: 8, background: "rgba(59,130,246,0.15)", borderRadius: 10 }}><LayoutDashboard size={20} color="#60a5fa" /></div>
-                    <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Diagnóstico Ejecutivo</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr 1.2fr", gap: 24, marginBottom: 24 }}>
+                
+                {/* Card: Score */}
+                <div className="card-gradient" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2.5rem" }}>
+                   <RadialProgress score={finalScore} />
+                   <div style={{ marginTop: 24 }}>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Estado Actual</p>
+                      <strong style={{ color: finalScore > 70 ? "#10B981" : finalScore > 40 ? "#F59E0B" : "#EF4444", fontSize: "1.25rem", fontWeight: 900 }}>
+                        {finalScore > 70 ? "EXCELENTE" : finalScore > 40 ? "PROMEDIO" : "CRÍTICO"}
+                      </strong>
+                   </div>
+                </div>
+
+                {/* Card: Diagnóstico */}
+                <div className="card-gradient" style={{ position: "relative", overflow: "hidden", padding: "2.5rem" }}>
+                  <div style={{ position: "absolute", top: -20, right: -20, width: 140, height: 140, background: "rgba(59,130,246,0.04)", borderRadius: "50%", filter: "blur(40px)" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                    <div style={{ padding: 8, background: "rgba(59,130,246,0.12)", borderRadius: 10 }}><Activity size={22} color="#60a5fa" /></div>
+                    <h3 style={{ fontWeight: 800, fontSize: "1.2rem" }}>Resumen Ejecutivo</h3>
                   </div>
-                  <p style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: "0.95rem" }}>
-                    Tu negocio muestra un sólido nivel de actividad semanal, pero existe una brecha 
-                    significativa entre facturación actual y objetivo anual. La principal fuga de energía está 
-                    en la <strong style={{ color: "#fff" }}>conversión comercial</strong> y la falta de 
-                    seguimiento sistemático. Una mejora en estos dos vectores puede cambiar radicalmente tus resultados en 90 días.
+                  <p style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: "1rem" }}>
+                    Basado en tus indicadores, tu negocio tiene un score de **{finalScore}/100**. 
+                    Aunque mantienes una actividad {finalScore > 60 ? "positiva" : "que requiere atención comercial"}, la falta de un sistema {answers[9] !== "Sí, sistemático" ? "totalmente automatizado" : "más eficiente"} 
+                    está frenando tu escalabilidad hacia la facturación objetivo de **{answers[1]}**.
                   </p>
+                  <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                     <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <span style={{ fontSize: "0.65rem", color: "#64748b", display: "block", fontWeight: 700, textTransform: "uppercase" }}>Conversión</span>
+                        <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#fff" }}>{answers[6] || 0}/10</span>
+                     </div>
+                     <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <span style={{ fontSize: "0.65rem", color: "#64748b", display: "block", fontWeight: 700, textTransform: "uppercase" }}>Frecuencia</span>
+                        <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#fff" }}>{answers[11] || "—"}</span>
+                     </div>
+                  </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  {[["Actividad Semanal","Alta","#34d399"],["Pipeline","Estable","#fbbf24"],["Riesgo","Bajo","#94a3b8"]].map(([label,val,color]) => (
-                    <div key={label}>
-                      <span style={{ fontSize: "0.7rem", color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>{label}</span>
-                      <span style={{ fontSize: "1.5rem", fontWeight: 800, color, fontFamily: "monospace" }}>{val}</span>
-                    </div>
-                  ))}
+
+                {/* Card: Cuellos de Botella */}
+                <div className="card-gradient" style={{ padding: "2.5rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                    <div style={{ padding: 8, background: "rgba(239,68,68,0.12)", borderRadius: 10 }}><AlertCircle size={22} color="#f87171" /></div>
+                    <h3 style={{ fontWeight: 800, fontSize: "1.2rem" }}>Fugas de Energía</h3>
+                  </div>
+                  <ul style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {[
+                      "Seguimiento comercial no sistemático.",
+                      "Baja conversión en el cierre de ventas.",
+                      "Falta de calificación previa de leads.",
+                    ].map((issue, i) => (
+                      <li key={i} style={{ display: "flex", gap: 12, fontSize: "0.9rem", color: "#94a3b8", lineHeight: 1.5, alignItems: "flex-start" }}>
+                        <span style={{ color: "#f87171", fontWeight: 900 }}>✕</span> {issue}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
-              {/* Card: Cuellos de Botella */}
-              <div className="card-gradient">
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                  <div style={{ padding: 8, background: "rgba(239,68,68,0.15)", borderRadius: 10 }}><AlertCircle size={20} color="#f87171" /></div>
-                  <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Cuellos de Botella</h3>
+              {/* Card: Prioridades Estratégicas */}
+              <div className="card-gradient" style={{ background: "linear-gradient(135deg,rgba(29,78,216,0.2),rgba(15,23,42,0.95))", border: "1px solid rgba(59,130,246,0.25)", marginBottom: 24, padding: "3rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>
+                  <div style={{ padding: 12, background: "rgba(250,204,21,0.15)", borderRadius: 14 }}><Zap size={28} color="#facc15" /></div>
+                  <div>
+                    <h3 style={{ fontWeight: 900, fontSize: "1.6rem", lineHeight: 1 }}>Plan de Acción Inmediato</h3>
+                    <p style={{ color: "#60a5fa", fontSize: "0.85rem", marginTop: 4, fontWeight: 600 }}>Enfoque sugerido para los próximos 90 días</p>
+                  </div>
                 </div>
-                <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
                   {[
-                    "Falta de seguimiento sistemático de la base instalada.",
-                    "Ticket promedio por debajo del nicho objetivo.",
-                    "Sin proceso claro de calificación de leads.",
-                  ].map((issue, i) => (
-                    <li key={i} style={{ display: "flex", gap: 12, padding: "0.875rem 1rem", background: "rgba(255,255,255,0.04)", borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.06)", fontSize: "0.875rem", color: "#94a3b8", alignItems: "flex-start" }}>
-                      <span style={{ color: "#f87171", fontWeight: 700, minWidth: 20 }}>{i + 1}.</span>
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Card: Prioridades Estratégicas */}
-            <div className="card-gradient" style={{ background: "linear-gradient(135deg,rgba(29,78,216,0.18),rgba(15,23,42,0.95))", border: "1px solid rgba(59,130,246,0.2)", marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-                <div style={{ padding: 8, background: "rgba(250,204,21,0.15)", borderRadius: 10 }}><Zap size={20} color="#facc15" /></div>
-                <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Prioridades Estratégicas Proyectadas</h3>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 20 }}>
-                {[
-                  { title: "Implementar CRM de Seguimiento", desc: "Digitalizar el proceso de contacto para no perder oportunidades calificadas por olvido o desorganización." },
-                  { title: "Definir y Escalar Nicho Premium", desc: "Ajustar el posicionamiento hacia clientes con ticket promedio superior, reduciendo esfuerzo por venta." },
-                  { title: "Rutina de Contacto con la Base", desc: "Crear una cadencia semanal de nutrición y activación de contactos para generar referidos orgánicos." },
-                ].map((rec, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12, duration: 0.4 }}
-                    style={{ padding: "1.5rem", background: "rgba(255,255,255,0.04)", borderRadius: "1.25rem", border: "1px solid rgba(255,255,255,0.07)", cursor: "default", transition: "border-color 0.2s" }}>
-                    <div style={{ fontSize: "3rem", fontWeight: 900, color: "#1d4ed8", opacity: 0.4, lineHeight: 1, marginBottom: 16, fontFamily: "monospace" }}>0{i + 1}</div>
-                    <h4 style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 10 }}>{rec.title}</h4>
-                    <p style={{ color: "#64748b", fontSize: "0.875rem", lineHeight: 1.7 }}>{rec.desc}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Card: gráfico + CTA */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <div className="card-gradient" style={{ minHeight: 240, position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                  <BarChart3 size={18} color="#60a5fa" />
-                  <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b" }}>Progreso vs Objetivo Anual</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 16, height: 140, paddingBottom: 8 }}>
-                  {[{ label: "Objetivo", pct: 100, color: "#1e293b" }, { label: "Actual", pct: 40, color: "#3b82f6" }].map((bar) => (
-                    <div key={bar.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: "#94a3b8", fontSize: "0.8rem", fontWeight: 600 }}>{bar.pct}%</span>
-                      <motion.div initial={{ height: 0 }} animate={{ height: bar.pct * 1.2 }} transition={{ duration: 0.8, delay: 0.3 }}
-                        style={{ width: 56, background: bar.color, borderRadius: "6px 6px 0 0", boxShadow: bar.color !== "#1e293b" ? "0 0 20px rgba(59,130,246,0.4)" : "none" }} />
-                      <span style={{ fontSize: "0.75rem", color: "#475569" }}>{bar.label}</span>
+                    { title: "Sistematización CRM", desc: "Digitalizar el proceso para eliminar el error humano en el seguimiento de contactos." },
+                    { title: "Escalado Premium", desc: "Enfocar tus cierres en prospectos de ticket alto para maximizar el margen por venta." },
+                    { title: "Activación de Clientes", desc: "Rutina semanal de nutrición de base de datos para generar referidos constantes." },
+                  ].map((rec, i) => (
+                    <div key={i} style={{ padding: "1.75rem", background: "rgba(255,255,255,0.03)", borderRadius: "1.5rem", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div style={{ fontSize: "2.5rem", fontWeight: 900, color: "#1d4ed8", opacity: 0.25, lineHeight: 1, marginBottom: 20 }}>0{i + 1}</div>
+                      <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: 12, color: "#fff" }}>{rec.title}</h4>
+                      <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.7 }}>{rec.desc}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="card-gradient" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <h3 style={{ fontSize: "1.4rem", fontWeight: 800, marginBottom: 14 }}>¡Buen punto de partida!</h3>
-                <p style={{ color: "#64748b", lineHeight: 1.7, marginBottom: 24, fontSize: "0.9rem" }}>
-                  Corregir estos 3 vectores estratégicos puede incrementar tu tasa de conversión hasta un <strong style={{ color: "#fff" }}>15–20%</strong> en el próximo trimestre.
-                </p>
-                <button
-                  id="btn-compartir-reporte"
-                  onClick={handleShare}
-                  className="btn-primary"
-                  style={{ fontSize: "0.9rem", padding: "0.75rem 1.5rem", alignSelf: "flex-start", gap: 8 }}
-                >
-                  {shareStatus === "copied" ? (
-                    <><Check size={16} /> ¡Copiado al portapapeles!</>
-                  ) : shareStatus === "shared" ? (
-                    <><Check size={16} /> ¡Compartido!</>
-                  ) : (
-                    <><Share2 size={16} /> Compartir Reporte</>
-                  )}
-                </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.8fr", gap: 24 }}>
+                <div className="card-gradient" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "2.5rem" }}>
+                   <div style={{ display: "flex", alignItems: "flex-end", gap: 32, height: 130 }}>
+                      <div style={{ width: 70 }}>
+                        <div style={{ background: "#1e293b", height: 130, borderRadius: 10, position: "relative", border: "1px solid rgba(255,255,255,0.05)" }}>
+                           <div style={{ position: "absolute", bottom: 0, width: "100%", height: "100%", border: "2px dashed #334155", borderRadius: 10 }} />
+                        </div>
+                        <span style={{ display: "block", textAlign: "center", marginTop: 14, fontSize: "0.75rem", color: "#475569", fontWeight: 700 }}>OBJETIVO</span>
+                      </div>
+                      <div style={{ width: 70 }}>
+                        <motion.div initial={{ height: 0 }} animate={{ height: 55 }} transition={{ duration: 1.2, delay: 0.5, ease: "backOut" }}
+                          style={{ width: "100%", background: "linear-gradient(to top, #2563eb, #60a5fa)", borderRadius: 10, boxShadow: "0 15px 35px rgba(37,99,235,0.4)" }} />
+                        <span style={{ display: "block", textAlign: "center", marginTop: 14, fontSize: "0.75rem", color: "#3b82f6", fontWeight: 800 }}>ACTUAL</span>
+                      </div>
+                   </div>
+                </div>
+                <div className="card-gradient" style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "3rem" }}>
+                   <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                      <div style={{ padding: 10, background: "rgba(16,185,129,0.1)", borderRadius: 12 }}><Target size={28} color="#10B981" /></div>
+                      <h3 style={{ fontSize: "1.8rem", fontWeight: 950, letterSpacing: "-0.02em" }}>Crecimiento Proyectado</h3>
+                   </div>
+                   <p style={{ color: "#94a3b8", lineHeight: 1.8, fontSize: "1.1rem" }}>
+                      Si implementamos estos 3 vectores, tu negocio podría incrementar su tasa de conversión neta en un <strong style={{ color: "#fff", fontSize: "1.3rem" }}>+20%</strong> durante el primer trimestre.
+                   </p>
+                </div>
               </div>
             </div>
 
-            <div style={{ textAlign: "center", marginTop: 36 }}>
-              <button onClick={restart} style={{ color: "#475569", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", transition: "color 0.2s" }}>
+            <div style={{ textAlign: "center", marginTop: 44 }}>
+              <button onClick={restart} style={{ color: "#4b5563", background: "none", border: "none", cursor: "pointer", fontSize: "1.05rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 10, transition: "color 0.2s" }}>
                 ↺ Realizar otro diagnóstico
               </button>
             </div>
