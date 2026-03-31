@@ -295,15 +295,15 @@ export default function Home() {
                </button>
             </div>
 
-            <div ref={reportRef} style={{ padding: "3rem", borderRadius: "2.5rem", background: "#0F172A", border: "1px solid rgba(255,255,255,0.05)", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)" }}>
-              <div style={{ textAlign: "center", marginBottom: 50 }}>
-                <div style={{ display: "inline-block", padding: "6px 16px", background: "rgba(96,165,250,0.1)", borderRadius: 99, marginBottom: 16 }}>
-                  <span style={{ fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", color: "#60a5fa" }}>✦ Análisis Estratégico Finalizado</span>
+            <div ref={reportRef} style={{ width: "100%", background: "transparent" }}>
+              <div style={{ textAlign: "center", marginBottom: 60, padding: "0 20px" }}>
+                <div style={{ display: "inline-block", padding: "8px 20px", background: "rgba(59,130,246,0.1)", borderRadius: 99, marginBottom: 20 }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", color: "#60a5fa" }}>✦ Análisis Estratégico Finalizado</span>
                 </div>
-                <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 900, marginTop: 4, letterSpacing: "-0.03em", lineHeight: 1 }}>Tu Diagnóstico de Salud Comercial</h1>
+                <h1 style={{ fontSize: "clamp(2rem, 5vw, 4rem)", fontWeight: 900, marginTop: 4, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Tu Diagnóstico de Salud Comercial</h1>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr 1.2fr", gap: 24, marginBottom: 24 }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.8fr_1.2fr] gap-6 mb-6">
                 
                 {/* Card: Score */}
                 <div className="card-gradient" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2.5rem" }}>
@@ -361,30 +361,30 @@ export default function Home() {
               </div>
 
               {/* Card: Prioridades Estratégicas */}
-              <div className="card-gradient" style={{ background: "linear-gradient(135deg,rgba(29,78,216,0.2),rgba(15,23,42,0.95))", border: "1px solid rgba(59,130,246,0.25)", marginBottom: 24, padding: "3rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>
-                  <div style={{ padding: 12, background: "rgba(250,204,21,0.15)", borderRadius: 14 }}><Zap size={28} color="#facc15" /></div>
+              <div className="card-gradient" style={{ background: "linear-gradient(135deg,rgba(30,58,138,0.3),rgba(15,23,42,0.8))", border: "1px solid rgba(59,130,246,0.2)", marginBottom: 24, padding: "2.5rem" }}>
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-10">
+                  <div style={{ padding: 12, background: "rgba(250,204,21,0.15)", borderRadius: 14, display: "inline-flex" }}><Zap size={32} color="#facc15" /></div>
                   <div>
-                    <h3 style={{ fontWeight: 900, fontSize: "1.6rem", lineHeight: 1 }}>Plan de Acción Inmediato</h3>
-                    <p style={{ color: "#60a5fa", fontSize: "0.85rem", marginTop: 4, fontWeight: 600 }}>Enfoque sugerido para los próximos 90 días</p>
+                    <h3 style={{ fontWeight: 900, fontSize: "1.75rem", lineHeight: 1.1 }}>Plan de Acción Inmediato</h3>
+                    <p style={{ color: "#60a5fa", fontSize: "0.9rem", marginTop: 6, fontWeight: 600 }}>Enfoque prioritario para escalar resultados</p>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {[
                     { title: "Sistematización CRM", desc: "Digitalizar el proceso para eliminar el error humano en el seguimiento de contactos." },
                     { title: "Escalado Premium", desc: "Enfocar tus cierres en prospectos de ticket alto para maximizar el margen por venta." },
                     { title: "Activación de Clientes", desc: "Rutina semanal de nutrición de base de datos para generar referidos constantes." },
                   ].map((rec, i) => (
-                    <div key={i} style={{ padding: "1.75rem", background: "rgba(255,255,255,0.03)", borderRadius: "1.5rem", border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <div style={{ fontSize: "2.5rem", fontWeight: 900, color: "#1d4ed8", opacity: 0.25, lineHeight: 1, marginBottom: 20 }}>0{i + 1}</div>
-                      <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: 12, color: "#fff" }}>{rec.title}</h4>
-                      <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.7 }}>{rec.desc}</p>
+                    <div key={i} className="glass" style={{ padding: "1.75rem", borderRadius: "1.5rem" }}>
+                      <div style={{ fontSize: "2.5rem", fontWeight: 900, color: "#3B82F6", opacity: 0.2, lineHeight: 1, marginBottom: 16 }}>0{i + 1}</div>
+                      <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: 12 }}>{rec.title}</h4>
+                      <p style={{ color: "#94a3b8", fontSize: "0.875rem", lineHeight: 1.7 }}>{rec.desc}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.8fr", gap: 24 }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="card-gradient" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "2.5rem" }}>
                    <div style={{ display: "flex", alignItems: "flex-end", gap: 32, height: 130 }}>
                       <div style={{ width: 70 }}>
